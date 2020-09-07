@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function validNumber(str) {
-  return /[1-9]/.test(str);
+  return /^[1-9]$/.test(str);
 }
 
 function fillGrid(str) {
@@ -98,6 +98,7 @@ function getCell(index) {
 */
 try {
   module.exports = {
-
+    validNumber,
+    validLength
   }
 } catch (e) {}
