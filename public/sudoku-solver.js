@@ -91,6 +91,72 @@ function getCell(index) {
   return document.getElementById(letter + number);
 }
 
+function parsePuzzle(str) {
+  const parsed = [];
+  for (let i = 0; i < str.length; i += 9) {
+    parsed.push(str.slice(i, i + 9).split(''));
+  }
+  return parsed;
+}
+
+function lineIsValid(arr) {
+  const validLine = '123456789';
+  return arr.sort().join('') === validLine;
+}
+
+function boxIsValid(arr) {
+  const nums = [];
+  for (let i = 0; i < arr.length; i ++) {
+    for (let j = 0; j < arr[0].length; j ++) {
+      nums.push(arr[i][j]);
+    }
+  }
+  return lineIsValid(nums);
+}
+
+function puzzleIsValid(str) {
+  const parsed = parsePuzzle(str);
+  let isValid = true;
+
+  // check rows
+  for (let i = 0; isValid && i < parsed.length; i ++) {
+    // be sure not to mutate parsed array
+    if (!lineIsValid(parsed[i].slice())) {
+      isValid = false;
+    }
+  }
+
+  // check columns
+  for (let j = 0; isValid && j < parsed[0].length; j ++) {
+    const col = [];
+    for (let i = 0; i < parsed.length; i ++) {
+      col.push(parsed[i][j]);
+    }
+    if (!lineIsValid(col)) {
+      isValid = false;
+    }
+  }
+
+  // check boxes
+  for (let i = 0; isValid && i < parsed.length; i += 3) {
+    for (let j = 0; isValid && j < parsed[0].length; j += 3) {
+      const box = [];
+      for (let i2 = i; i2 < i + 3; i2 ++) {
+        const row = [];
+        for (let j2 = j; j2 < j + 3; j2 ++) {
+          row.push(parsed[i2][j2]);
+        }
+        box.push(row);
+      }
+      if (!boxIsValid(box)) {
+        isValid = false;
+      }
+    }
+  }
+
+  return isValid;
+}
+
 /* 
   Export your functions for testing in Node.
   Note: The `try` block is to prevent errors on
@@ -99,6 +165,8 @@ function getCell(index) {
 try {
   module.exports = {
     validNumber,
-    validLength
+    validLength,
+    parsePuzzle,
+    puzzleIsValid
   }
 } catch (e) {}

@@ -49,10 +49,20 @@ suite('UnitTests', () => {
   });
   
   suite('Function ____()', () => {
-    test.skip('Parses a valid puzzle string into an object', done => {
+    test('Parses a valid puzzle string into an object', done => { // tests stop here unless 'done' is used
       const input = '..9..5.1.85.4....2432......1...69.83.9.....6.62.71...9......1945....4.37.4.3..6..';
       
-      // done();
+      assert.equal(input.length, 81, 'String length is 81');
+      const parsed = Solver.parsePuzzle(input);
+      assert.isArray(parsed);
+      assert.equal(parsed.length, 9, 'Array length is 9');
+      for (let i = 0; i < parsed.length; i += 9) {
+        assert.isArray(parsed[i]);
+        assert.equal(parsed[i].length, 9, 'Array length is 9');
+        assert.equal(parsed[i].join(''), input.slice(i, 9), 'Array elements match string characters.');
+      }
+
+      done();
     });
     
     // Puzzles that are not 81 numbers/periods long show the message 
@@ -93,17 +103,17 @@ suite('UnitTests', () => {
 
   suite('Function ____()', () => {
     // Valid complete puzzles pass
-    test.skip('Valid puzzles pass', done => {
+    test('Valid puzzles pass', () => {
       const input = '769235418851496372432178956174569283395842761628713549283657194516924837947381625';
 
-      // done();
+      assert.isTrue(Solver.puzzleIsValid(input));
     });
 
     // Invalid complete puzzles fail
-    test.skip('Invalid puzzles fail', done => {
+    test('Invalid puzzles fail', () => {
       const input = '779235418851496372432178956174569283395842761628713549283657194516924837947381625';
 
-      // done();
+      assert.isFalse(Solver.puzzleIsValid(input));
     });
   });
   
