@@ -25,8 +25,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const textAreaContent = textArea.value.split('');
     if (value && validNumber(value)) {
       textAreaContent[index] = value;
-    } else {
-      textAreaContent[index] = '.';
+    }
+    for (let i = 0; i < 81; i ++) {
+      if (!textAreaContent[i]) {
+        textAreaContent[i] = '.';
+      }
     }
     textArea.value = textAreaContent.join('');
     validateTextArea(textArea.value);
@@ -55,7 +58,7 @@ function fillGrid(str) {
     const cell = getCell(i);
     if (str[i] && validNumber(str[i])) {
       cell.value = str[i];
-    } else {
+    } else if (!str[i]) {
       cell.value = '';
     }
   }
