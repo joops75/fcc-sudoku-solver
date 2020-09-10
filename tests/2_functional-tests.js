@@ -32,7 +32,6 @@ suite('Functional Tests', () => {
       // clear grid
       textarea.value = '';
       textarea.dispatchEvent(event);
-      // console.log('cellFirst.value', cellFirst.value);
       assert.isTrue(!textarea.value, 'Textarea is blank.');
       assert.isTrue(!cellFirst.value, 'Cell is blank.');
       assert.isTrue(!cellLast.value, 'Cell is blank.');
@@ -40,7 +39,6 @@ suite('Functional Tests', () => {
       // populate textarea and check cell values
       const textareaValue = '1' + '.'.repeat(79) + '9';
       textarea.value = textareaValue;
-      // console.log('textarea.value', textarea.value);
       textarea.dispatchEvent(event);
       assert.equal(textareaValue.length, 81, `Textarea value is 81 characters long.`);
       assert.equal(textarea.value, textareaValue, `Textarea value is ${textareaValue}.`);
@@ -109,9 +107,24 @@ suite('Functional Tests', () => {
     
     // Pressing the "Solve" button solves the puzzle and
     // fills in the grid with the solution
-    test.skip('Function showSolution(solve(input))', done => {
+    test('Function showSolution(solve(input))', () => {
+      const textarea = document.getElementById('text-input');
+      const solveButton = document.getElementById('solve-button');
+      const errorDiv = document.getElementById('error-msg');
+      const { puzzlesAndSolutions } = require('../public/puzzle-strings');
 
-      // done();
+      for (let i = 0; i < puzzlesAndSolutions.length; i ++) {
+        textarea.value = puzzlesAndSolutions[i][0];
+        // clear any message so solveButtonListener can run properly
+        errorDiv.innerText = '';
+        solveButton.click();
+        const solution = puzzlesAndSolutions[i][1];
+        assert.equal(textarea.value, solution, 'Textarea value equals expected solution.');
+        for (let j = 0; j < solution.length; j ++) {
+          const cell = Solver.getCell(j);
+          assert.equal(cell.value, solution[j], `Cell ${cell.id} has expected value ${solution[j]}.`);
+        }
+      }
     });
   });
 });

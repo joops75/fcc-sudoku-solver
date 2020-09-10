@@ -1,5 +1,7 @@
 const textArea = document.getElementById('text-input');
 const clearButton = document.getElementById('clear-button');
+const solveButton = document.getElementById('solve-button');
+const errorDiv = document.getElementById('error-msg');
 
 document.addEventListener('DOMContentLoaded', function() {
   // Load a simple puzzle into the text area
@@ -25,6 +27,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const textAreaContent = textArea.value.split('');
     if (value && validNumber(value)) {
       textAreaContent[index] = value;
+    } else if (!value) {
+      textAreaContent[index] = '.';
     }
     for (let i = 0; i < 81; i ++) {
       if (!textAreaContent[i]) {
@@ -47,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   clearButton.addEventListener('click', clearButtonListener);
+  solveButton.addEventListener('click', solveButtonListener);
 });
 
 function validNumber(str) {
@@ -58,7 +63,7 @@ function fillGrid(str) {
     const cell = getCell(i);
     if (str[i] && validNumber(str[i])) {
       cell.value = str[i];
-    } else if (!str[i]) {
+    } else if (!str[i] || str[i] === '.') {
       cell.value = '';
     }
   }
@@ -73,7 +78,6 @@ function validCharacters(str) {
 }
 
 function errorMsg(str) {
-  const errorDiv = document.getElementById('error-msg');
   errorDiv.innerText = str;
 }
 
@@ -160,6 +164,143 @@ function puzzleIsValid(str) {
   return isValid;
 }
 
+function getBoxIndex(i, j) {
+  return Math.floor((i / 3)) * 3 + Math.floor(j / 3);
+}
+
+function sudokuSolver(str) {
+  // setup possibitity sets
+  const rowPossibilites = [];
+  const colPossibilites = [];
+  const boxPossibilites = [];
+  for (let i = 0; i < 9; i ++) {
+    rowPossibilites.push(new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9']));
+    colPossibilites.push(new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9']));
+    boxPossibilites.push(new Set(['1', '2', '3', '4', '5', '6', '7', '8', '9']));
+  }
+  
+  // scan grid and eliminate possibilities from rows, columns and boxes
+  const grid = parsePuzzle(str);
+  const emptyCells = [];
+  for (let i = 0; i < grid.length; i ++) {
+    for (let j = 0; j < grid[0].length; j ++) {
+      const value = grid[i][j];
+      if (validNumber(value)) {
+        if (!rowPossibilites[i].delete(value)) {
+          return { solution: str, error: `Row ${i + 1} has duplicate value ${value}` };
+        }
+        if (!colPossibilites[j].delete(value)) {
+          return { solution: str, error: `Column ${j + 1} has duplicate value ${value}` };
+        }
+        const boxIndex = getBoxIndex(i, j);
+        if (!boxPossibilites[boxIndex].delete(value)) {
+          return { solution: str, error: `Box ${boxIndex + 1} has duplicate value ${value}` };
+        }
+      } else if (value === '.') {
+        emptyCells.push([i, j]);
+      } else {
+        // should never run if early return present at start of function
+        return { solution: str, error: `Invalid character at cell ${getCell(i * 9 + j).id}` };
+      }
+    }
+  }
+
+  function allCounterpartRowsAndColumnsHaveNumber(i, j, number) {
+    const rowIndexes = [];
+    const colIndexes = [];
+    for (let k = 0; k < 9; k ++) {
+      if (i !== k && Math.floor(k / 3) === Math.floor(i / 3)) {
+        rowIndexes.push(k);
+      }
+      if (j !== k && Math.floor(k / 3) === Math.floor(j / 3)) {
+        colIndexes.push(k);
+      }
+    }
+    const allCounterpartRowsHaveNumber = rowIndexes.every(function(index) {
+      return !rowPossibilites[index].has(number);
+    });
+    const allCounterpartColumnsHaveNumber = colIndexes.every(function(index) {
+      return !colPossibilites[index].has(number);
+    });
+    if (allCounterpartRowsHaveNumber && allCounterpartColumnsHaveNumber) {
+      return true;
+    }
+    return false;
+  }
+
+  // check if only one possibility
+  function enterNumber(counterpartRowColumnCheck) {
+    for (let m = 0; m < emptyCells.length; m ++) {
+      const i = emptyCells[m][0];
+      const j = emptyCells[m][1];
+      const boxIndex = getBoxIndex(i, j);
+      let numberToEnter = '';
+      for (let n = 1; n <= 9; n ++) {
+        const number = '' + n;
+        if (rowPossibilites[i].has(number) && colPossibilites[j].has(number) && boxPossibilites[boxIndex].has(number)) {
+          if (counterpartRowColumnCheck) {
+            // checking counterpart rows and columns is not needed to solve the puzzles in public/puzzle-strings.js
+            // check function with 9............9......................................9...........................9
+            if (allCounterpartRowsAndColumnsHaveNumber(i, j, number)) {
+              numberToEnter = number;
+              // this check has identified number as being the only possibility so can early exit from loop
+              break;
+            }
+          } else {
+            if (!numberToEnter) {
+              numberToEnter = number;
+            } else {
+              // More than one possibility for cell so cannot enter number. Move on to next cell.
+              numberToEnter = '';
+              break;
+            }
+          }
+        }
+      }
+      if (numberToEnter) {
+        // enter number into cell
+        grid[i][j] = numberToEnter;
+        // remove number from each possibilty set
+        rowPossibilites[i].delete(numberToEnter);
+        colPossibilites[j].delete(numberToEnter);
+        boxPossibilites[boxIndex].delete(numberToEnter);
+        // remove cell from list and return it
+        return emptyCells.splice(m, 1);
+      }
+    }
+  }
+  
+  // as long as cells are removed from emptyCells array, continue trying to enter numbers in the grid
+  let incomplete = true;
+  while (incomplete) {
+    if (!enterNumber(false) && !enterNumber(true)) {
+      incomplete = false;
+    }
+  }
+
+  // confirm solution is valid
+  const solution = JSON.stringify(grid).replace(/[^1-9\.]/g, '');
+  const error = emptyCells.length ? 'Cannot solve puzzle.' : !puzzleIsValid(solution) ? 'Solution is invalid.' : '';
+
+  return { solution, error };
+}
+
+function solveButtonListener() {
+  // early exit if current error or blank puzzle
+  if (errorDiv.innerText || !textArea.value) {
+    return;
+  }
+
+  const { solution, error } = sudokuSolver(textArea.value);
+
+  // print new grid
+  textArea.value = solution;
+  fillGrid(solution);
+  
+  // print message
+  error ? errorMsg(error) : errorMsg('Puzzle solved!');
+}
+
 /* 
   Export your functions for testing in Node.
   Note: The `try` block is to prevent errors on
@@ -170,6 +311,8 @@ try {
     validNumber,
     validLength,
     parsePuzzle,
-    puzzleIsValid
+    puzzleIsValid,
+    sudokuSolver,
+    getCell
   }
 } catch (e) {}
